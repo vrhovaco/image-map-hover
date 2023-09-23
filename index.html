@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+    <head> 
+        <title>Image-Map-Hover</title>
+        <link href=type="text/css" rel="stylesheet">
+        <meta charset="UTF-8">
+        <meta name="description" content="Image-Map-Hover">
+        <meta name="author" content="Aleksandar Vrhovac">    
+        <script>
+
+          // stores the device context of the canvas we use to draw the outlines
+          // initialized in myInit, used in myHover and myLeave
+          var hdc;
+          
+          // shorthand func
+          function byId(e){return document.getElementById(e);}
+          
+          // takes a string that contains coords eg - "227,307,261,309, 339,354, 328,371, 240,331"
+          // draws a line from each co-ord pair to the next - assumes starting point needs to be repeated as ending point.
+          function drawPoly(coOrdStr)
+          {
+              var mCoords = coOrdStr.split(',');
+              var i, n;
+              n = mCoords.length;
+          
+              hdc.beginPath();
+              hdc.moveTo(mCoords[0], mCoords[1]);
+              for (i=2; i<n; i+=2)
+              {
+                  hdc.lineTo(mCoords[i], mCoords[i+1]);
+              }
+              hdc.lineTo(mCoords[0], mCoords[1]);
+              hdc.stroke();
+              hdc.fill();
+          }
+          
+          function drawRect(coOrdStr)
+          {
+              var mCoords = coOrdStr.split(',');
+              var top, left, bot, right;
+              left = mCoords[0];
+              top = mCoords[1];
+              right = mCoords[2];
+              bot = mCoords[3];
+              hdc.strokeRect(left,top,right-left,bot-top); 
+          }
+          
+          function myHover(element)
+          {
+              var hoveredElement = element;
+              var coordStr = element.getAttribute('coords');
+              var areaType = element.getAttribute('shape');
+
+                  hdc.fillStyle = 'rgba(0, 0, 255, 0.2)';
+                  hdc.strokeStyle = 'blue';
+          
+              switch (areaType)
+              {
+                  case 'polygon':
+                  case 'poly':
+                      drawPoly(coordStr);
+                      break;
+          
+                  case 'rect':
+                      drawRect(coordStr);
+              }
+          }
+
+          function drawTakenAreas() {
+    var takenAreas = document.querySelectorAll('area.taken');
+
+    takenAreas.forEach(function (area) {
+        var coordStr = area.getAttribute('coords');
+        var areaType = area.getAttribute('shape');
+
+        switch (areaType) {
+            case 'polygon':
+            case 'poly':
+                hdc.fillStyle = 'rgba(255, 0, 0, 0.2)'; // Plava boja s prozirnošću od 0.2
+                hdc.strokeStyle = 'red';
+                hdc.beginPath();
+                drawPoly(coordStr); // Crta oblik
+                hdc.fill(); // Ispunite oblik s postavljenom bojom i prozirnošću
+                hdc.closePath();
+                break;
+
+            case 'rect':
+                hdc.fillStyle = 'rgba(255, 0, 0, 0.2)'; // Plava boja s prozirnošću od 0.2
+                hdc.strokeStyle = 'red';
+                drawRect(coordStr); // Crta pravokutnik
+                break;
+        }
+    });
+}
+          function myLeave()
+          {
+              var canvas = byId('myCanvas');
+              hdc.clearRect(0, 0, canvas.width, canvas.height);
+              drawTakenAreas();
+          }
+          
+          function myInit()
+          {
+              // get the target image
+              var img = byId('img-imgmap');
+          
+              var x,y, w,h;
+          
+              // get it's position and width+height
+              x = img.offsetLeft;
+              y = img.offsetTop;
+              w = img.clientWidth;
+              h = img.clientHeight;
+          
+              // move the canvas, so it's contained by the same parent as the image
+              var imgParent = img.parentNode;
+              var can = byId('myCanvas');
+              imgParent.appendChild(can);
+          
+              // place the canvas in front of the image
+              can.style.zIndex = 1;
+          
+              // position it over the image
+              can.style.left = x+'px';
+              can.style.top = y+'px';
+          
+              // make same size as the image
+              can.setAttribute('width', w+'px');
+              can.setAttribute('height', h+'px');
+          
+              // get it's context
+              hdc = can.getContext('2d');
+          
+              // set the 'default' values for the colour/width of fill/stroke operations
+              hdc.fillStyle = 'rgba(0, 0, 255, 0.2)';
+              hdc.strokeStyle = 'blue';
+              hdc.lineWidth = 2;
+
+              drawTakenAreas();
+
+              window.addEventListener('resize', myInitIfNeeded);
+          }
+
+          var previousOffsetLeft = 0; // Promenljiva za praćenje prethodnog offsetLeft
+          var previousOffsetTop = 0; // Promenljiva za praćenje prethodnog offsetTop
+
+function myInitIfNeeded() {
+    var img = byId('img-imgmap');
+    var offsetLeft = img.offsetLeft;
+    var offsetTop = img.offsetTop;
+
+    // Proverite da li se promenio offsetLeft ili offsetTop slike
+    if (offsetLeft !== previousOffsetLeft || offsetTop !== previousOffsetTop) {
+        // Ako se promenilo, ažurirajte prethodne vrednosti i pozovite myInit()
+        previousOffsetLeft = offsetLeft;
+        previousOffsetTop = offsetTop;
+        myInit();
+    }
+    }
+          </script>
+          <style>
+            canvas
+              {
+                  pointer-events: none;       /* make the canvas transparent to the mouse - needed since canvas is position infront of image */
+                  position: absolute;
+              }
+          </style>
+    </head>
+    <body onload='myInit()'>
+      <canvas id='myCanvas'></canvas>     <!-- gets re-positioned in myInit(); -->
+        <h1>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</h1>
+
+        <img src='Img-for-mapping.jpg' usemap='#imgmap_css_container_imgmap' class='imgmap_css_container' title='imgmap' alt='imgmap' id='img-imgmap' />
+        <map id='imgmap' name='imgmap_css_container_imgmap'>
+    <area class="taken" alt="A1" title="A1" href="#" coords="201,353,263,321,333,322,382,372,367,427,323,455,244,470,192,446,187,410,187,380" shape="poly">
+    <area onmouseover='myHover(this);' onmouseout='myLeave();' target="_blank" alt="A2" title="A2" href="#" coords="664,334,610,467,650,584,895,579,1030,520,1051,388,1034,358,904,337" shape="poly">
+    <area onmouseover='myHover(this);' onmouseout='myLeave();' target="_blank" alt="A3" title="A3" href="#" coords="98,669,108,786,1007,785,1013,669" shape="poly">
+</map>
+
+       <img src=""
+
+    </body>
+</html>
